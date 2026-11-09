@@ -21,8 +21,16 @@ impl<S: 'static> Runtime<S> {
         text
     }
 
-    /// Capture a secondary gesture without activating primary actions or text selection.
+    /// Capture a secondary gesture without activating primary actions or text selection. An
+    /// element there that takes the secondary button ([`El::pointer_buttons`]) is pressed and
+    /// dragged instead, as for the middle button.
     pub fn secondary_down(&mut self, x: f32, y: f32) {
+        if self.capture.is_none() && self.button_target(x, y, crate::PointerButton::Secondary).is_some() {
+            self.pointer = Some((x, y));
+            self.dismiss_help();
+            self.press_button(x, y, crate::PointerButton::Secondary);
+            return;
+        }
         self.pointer = Some((x, y));
         self.release_hover_hold();
         self.keyboard_focus = false;
@@ -33,6 +41,9 @@ impl<S: 'static> Runtime<S> {
     }
 
     pub fn secondary_up(&mut self, x: f32, y: f32) {
+        if self.capture.is_some() && self.capture_button == crate::PointerButton::Secondary {
+            return self.release_capture(x, y);
+        }
         self.pointer = Some((x, y));
         let down_link = self.take_secondary_link();
         if let Some(path) = self.secondary_capture.take()
