@@ -87,7 +87,7 @@ impl RotateEvent {
 }
 
 /// A mouse button. Only `Primary` reaches `on_press` and `on_drag` unless an element opts in to
-/// others with [`El::pointer_buttons`]; `Secondary` always goes to `on_secondary_press`.
+/// others with [`El::pointer_buttons`]; `Secondary` goes to `on_secondary_press` unless the element opts in to it there.
 #[non_exhaustive]
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
 pub enum PointerButton {
@@ -102,10 +102,11 @@ pub enum PointerButton {
 }
 
 impl PointerButton {
-    /// Its bit in [`CanvasInput::buttons`]; none for the primary and secondary buttons.
+    /// Its bit in [`CanvasInput::buttons`]; none for the primary button, which always presses.
     pub(crate) fn bit(self) -> u8 {
         match self {
-            Self::Primary | Self::Secondary => 0,
+            Self::Primary => 0,
+            Self::Secondary => 16,
             Self::Middle => 1,
             Self::Back => 2,
             Self::Forward => 4,
@@ -185,7 +186,10 @@ impl El {
 
     /// Mouse buttons besides the primary that press and drag this element: its `on_press` and
     /// `on_drag` hear them too, and [`Tx::button`] says which. A middle-button drag pans a
-    /// canvas this way. The secondary button keeps opening `on_secondary_press`.
+    /// canvas this way. With [`PointerButton::Secondary`] here, a secondary-button press on
+    /// this element drives `on_press` and `on_drag` (a measuring tool's right-drag, a map's
+    /// rotate) instead of opening `on_secondary_press`; elements that don't opt in keep their
+    /// context menus, and the Menu key still opens this element's `on_secondary_press`.
     pub fn pointer_buttons(mut self, buttons: impl IntoIterator<Item = PointerButton>) -> Self {
         let bits = buttons.into_iter().fold(0, |bits, b| bits | b.bit());
         self.canvas_input().buttons |= bits;

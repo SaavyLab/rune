@@ -185,14 +185,24 @@ impl<S: 'static> Runtime<S> {
         if self.press.is_held() { return; }
         self.pointer = Some((x, y));
         self.dismiss_help();
+        self.press_button(x, y, button);
+    }
+
+    /// The innermost element at (x, y) that takes `button` through [`El::pointer_buttons`].
+    pub(super) fn button_target(&self, x: f32, y: f32, button: PointerButton) -> Option<usize> {
         let hit = self.hits.iter().rev().find(|&&(id, r)| self.hit_contains(id, r, x, y)).and_then(|(id, _)| self.node_index.get(id).copied());
-        let target = std::iter::successors(hit, |&i| self.nodes[i].parent)
+        std::iter::successors(hit, |&i| self.nodes[i].parent)
             .take_while(|&i| !self.subtree_exiting(i) && self.allowed(i))
             .find(|&i| {
                 let n = &self.nodes[i];
                 n.handlers.gestures.as_ref().is_some_and(|g| g.buttons & button.bit() != 0) && (n.handlers.on_press.is_some() || n.handlers.on_drag.is_some())
-            });
-        let Some(i) = target else { return };
+            })
+    }
+
+    /// Presses the element at (x, y) that takes `button`, capturing the pointer for its drag:
+    /// false when none does.
+    pub(super) fn press_button(&mut self, x: f32, y: f32, button: PointerButton) -> bool {
+        let Some(i) = self.button_target(x, y, button) else { return false };
         let n = &self.nodes[i];
         let r = n.target;
         let [lx, ly] = self.to_local(i, x, y);
@@ -202,6 +212,7 @@ impl<S: 'static> Runtime<S> {
         self.press_clicks.clear();
         let now = self.now_clock();
         self.press.hold(capture::Held::new(path, d, button, (x, y), now, false, None));
+        true
     }
 
     /// A mouse button came up at (x, y): the release of [`Self::button_down`].

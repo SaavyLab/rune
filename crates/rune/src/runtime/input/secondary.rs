@@ -23,8 +23,16 @@ impl<S: 'static> Runtime<S> {
         text
     }
 
-    /// Capture a secondary gesture without activating primary actions or text selection.
+    /// Capture a secondary gesture without activating primary actions or text selection. An
+    /// element there that takes the secondary button ([`El::pointer_buttons`]) is pressed and
+    /// dragged instead, as for the middle button.
     pub fn secondary_down(&mut self, x: f32, y: f32) {
+        if !self.press.is_held() && self.button_target(x, y, crate::PointerButton::Secondary).is_some() {
+            self.pointer = Some((x, y));
+            self.dismiss_help();
+            self.press_button(x, y, crate::PointerButton::Secondary);
+            return;
+        }
         self.pointer = Some((x, y));
         self.release_hover_hold();
         self.focus.step(focus_machine::FocusEvent::Pointed);
@@ -65,6 +73,9 @@ impl<S: 'static> Runtime<S> {
     }
 
     pub fn secondary_up(&mut self, x: f32, y: f32) {
+        if self.press.held().is_some_and(|h| h.button == crate::PointerButton::Secondary) {
+            return self.release_capture(x, y);
+        }
         self.pointer = Some((x, y));
         self.secondary_region_up(x, y);
         let (path, down_link, left) = match std::mem::take(&mut self.secondary) {
