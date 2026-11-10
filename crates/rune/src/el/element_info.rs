@@ -46,6 +46,11 @@ impl Default for ElementInfo {
             expanded: None,
             item_selected: false,
             stuck: 0.0,
+            text_size: None,
+            text_mode: None,
+            text_cut: false,
+            clips: false,
+            scrolls: false,
         }
     }
 }
