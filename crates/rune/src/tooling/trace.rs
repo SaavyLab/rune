@@ -319,6 +319,24 @@ pub(crate) fn tree_json<S>(rt: &Runtime<S>, real_t: f64) -> Value {
             if let Some(c) = e.text_color {
                 v["color"] = c.hex().into();
             }
+            if let Some([w, h]) = e.text_size {
+                v["textSize"] = json!([r2(w), r2(h)]);
+            }
+            if let Some(m) = e.text_mode {
+                v["textMode"] = m.into();
+            }
+            if e.text_cut {
+                v["textCut"] = true.into();
+            }
+            if e.clips {
+                v["clips"] = true.into();
+            }
+            if e.scrolls {
+                v["scrolls"] = true.into();
+            }
+            if e.visible.iter().zip(e.rect.iter()).any(|(a, b)| (a - b).abs() > 0.01) {
+                v["visible"] = e.visible.map(r2).to_vec().into();
+            }
             if let Some(h) = &e.help {
                 v["help"] = h.clone().into();
             }

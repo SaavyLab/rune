@@ -73,6 +73,17 @@ pub struct ElementInfo {
     /// where scrolling put it this frame, in points: down for a stuck header, up for a stuck
     /// footer, right for a stuck left element, 0 when it isn't stuck. `rect` already includes it.
     pub stuck: f32,
+    /// Layout checks: a text's laid-out lines, width (without hanging whitespace) and height in points, before any cut or clip.
+    pub text_size: Option<[f32; 2]>,
+    /// How a text was asked to fit: "wrap", "clamp" (max lines), "truncate" (an ellipsis), "fade", or
+    /// "line" (one line, nothing said about overflow).
+    pub text_mode: Option<&'static str>,
+    /// The text shows less than its content, by its own intent (an ellipsis, a clamp, a fade).
+    pub text_cut: bool,
+    /// It clips its children (`El::clip_soft`, `clip_rounded`, a scroll view).
+    pub clips: bool,
+    /// It is a scroll view: its children may run past it.
+    pub scrolls: bool,
 }
 
 /// An element [`Runtime::element_at`] found.
@@ -336,6 +347,20 @@ impl<S: 'static> Runtime<S> {
                     expanded: n.a11y.expanded,
                     item_selected: n.focus.selected,
                     stuck: self.stuck.get(i).copied().unwrap_or(0.0),
+                    text_size: n.text.as_ref().zip(n.text_layout.as_ref()).map(|(t, l)| {
+                        [l.width() / s, crate::text::layout_height(l, t.style, s) / s]
+                    }),
+                    text_mode: n.text.as_ref().map(|t| {
+                        if t.truncate { "truncate" }
+                        else if t.truncate_fade { "fade" }
+                        else if t.max_lines > 0 { "clamp" }
+                        else if t.wrap { "wrap" }
+                        else { "line" }
+                    }),
+                    text_cut: n.text_cut(s),
+                    clips: n.vis.clip.is_some() || n.vis.clip_radius.is_some() || n.vis.clip_to_content
+                        || self.scrolls.contains_key(&n.id),
+                    scrolls: self.scrolls.contains_key(&n.id),
                     virtual_extent: self.virtuals.contains_key(&n.path) && n.vis.fill.a == 0.0
                         && n.vis.border_width == 0.0 && n.vis.shadows.is_empty() && n.text.is_none() && n.vis.icon.is_none(),
                 })
@@ -359,6 +384,7 @@ impl<S: 'static> Runtime<S> {
                     (r.edges()[3].min(c[3]) - r.y.max(c[1])).max(0.0)],
                 revealing: true, in_growing_row: false, scrolling: false, scrolled: [0.0; 2], virtual_extent: false, live_intent: 0, caret: None, drag_out: false,
                 help: None, selected: None, level: None, expanded: None, item_selected: false, stuck: 0.0,
+                text_size: None, text_mode: None, text_cut: false, clips: false, scrolls: false,
             });
         }
         self.link_elements(&mut elements);
