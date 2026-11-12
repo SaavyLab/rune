@@ -125,7 +125,10 @@ fn two_bars_each_blur_their_own_backdrop() {
 
 #[test]
 fn bars_past_the_cap_draw_only_their_fill() {
-    let bars = (0..rune::MAX_BACKDROP_BLURS + 1).map(|i| Bar { rect: [i as f32 * 40.0, 30.0, 36.0, 60.0], ..BAR }).collect();
+    // Every bar the cap allows sits on the first one, so the scene fits whatever the cap is; one
+    // more stands at the right.
+    let mut bars: Vec<Bar> = (0..rune::MAX_BACKDROP_BLURS).map(|_| Bar { rect: [0.0, 30.0, 36.0, 60.0], ..BAR }).collect();
+    bars.push(Bar { rect: [160.0, 30.0, 36.0, 60.0], ..BAR });
     let (rt, px) = render(Scene { bars, blur: true }, 1.0);
     assert_eq!(records(&rt), rune::MAX_BACKDROP_BLURS);
     // Near the window edge the clamped taps lean towards the edge stripe.

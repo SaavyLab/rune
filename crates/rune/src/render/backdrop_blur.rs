@@ -6,8 +6,10 @@
 //! first record; frames without one never touch it.
 use super::*;
 
-/// Backdrop-blurred elements per frame. Elements past this many draw only their fill.
-pub const MAX_BACKDROP_BLURS: usize = 4;
+/// Backdrop-blurred elements per frame. Elements past this many draw only their fill. Eight: a
+/// game screen with glass at every edge (strips, cards, a transcript, a radio panel, a header)
+/// frosts them all; each one past the first costs only its own region's passes.
+pub const MAX_BACKDROP_BLURS: usize = 8;
 
 /// Pyramid levels below the backdrop, the first at half resolution.
 const MIPS: u32 = 7;
